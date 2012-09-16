@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>URL Deemed Unsafe</title>
+        <style>
+            h1 {
+                margin: 0.2em;
+                font-family: 'Yanone Kaffeesatz', sans-serif;
+                font-weight: bold;
+                font-size: 3.5em;
+            }
+            p {
+                font-family: 'Arial', sans-serif;
+            }
+            .url {
+                font-family: 'lucidia', sans-serif;
+                font-size: 0.8em;
+                color: red;
+            }
+            #content {
+                position: absolute;
+                left: 0px;
+                top: 50%;
+                height: 4em;
+                margin-top: -7em;
+                text-align: center;
+                width: 100%;
+            }
+            .malicious {
+                color: red;
+            }
+            .uncertain {
+                color: orange;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="content">
+            <h1>URL <span class="malicious" id="header">DANGEROUS</span></h1>
+            <p>
+                The url was deemed <span class="reason malicious" id="inline">malicious</span> by the scanning system.
+            </p>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,216 @@
+#!/usr/bin/env python
+
+"""
+Dynamic decision handler to combine multiple scan
+results from peers of varied social distances.
+"""
+
+__author__ = 'Leonardo Boquillón, Henry Longmore, and Matt Probst'
+__version__ = '0.15'
+
+"""
+Proposed Solution: Establish a Weight (Utility) for each scan which includes the following factors: 
+
+    Combine  Weights to form single weight for scan.  
+    W(i) = was(i) * wao(i) * ws(i) * wc(i) * wp(i) * A(p)
+    wao(i) is the identity function for now, to implement the ignore for now directive.
+"""
+import math
+
+from socialscan.util import Safety, WeightedAverager
+
+class Scale(object):
+    """
+    Compute the weight of a scan.
+    """
+    # When the future research is ready, set future to True to get results
+    # of weighing the age of the object based on whether the signature set
+    # consideres it as malware.
+    future = False
+
+    def __init__(self, kwargs**):
+        # To avoid being either extremely paraniod or extremely lax in the
+        # absence of information, set the weight to 0.5 initially.
+        self.weight = 0.5
+        self.signature_weight = kwargs.get('signature_weight', 1.0)
+        self.object_weight = kwargs.get('object_weight', 1.0)
+        self.peer_security_weight = kwargs.get('peer_security_weight', 1.0)
+        self.commonality_weight = kwargs.get('commonality_weight', 1.0)
+        self.positive_scan_weight = kwargs.get('positive_scan_weight', 1.0)
+        self.altruistic_weight = kwargs.get('altruistic_weight', 1.0)
+
+    def weigh_signature(self, age):
+        """
+        Compute the weight of the signature's age.
+
+        @param age: age of signature in hours
+        @type age: C{int}
+        """
+        if age >= 1:
+            self.signature_weight = 1/(age**2)
+
+    def weigh_object(self, age, malware=False):
+        """
+        Compute the weight of the age of the object.  If self.future is True,
+        calls _weigh_object_future, otherwise sets the weight to 1.0.
+
+        @param age: age of the object in days
+        @type age: C{int}
+
+        @param malware: True if the signature set deems the object to be malware
+        @type malware: C{bool}
+        """
+        if self.future:
+            self.object_weight = _weigh_object_future(age, malware)
+        else:
+            self.object_weight = 1.0
+
+    def _weigh_object_future(self, age, malware=False):
+        """
+        An old signature set may definitively verify a given object is
+        malware, but not that it is goodware, so degrade an old signature
+        set's ability to verify as malware very slowly, while degrading its
+        ability to exclude malware very quickly.
+
+        @param age: age of the object in days
+        @type age: C{int}
+
+        @param malware: True if the signature set deems the object to be malware
+        @type malware: C{bool}
+        """
+        # NOTA BENE: this represents an initial stab at the 'future research'.
+        if malware:
+            if age > 1:
+                return 1/math.log(age)
+        else:
+            newness = 1.0
+            if age > 1:
+                if age < 10:
+                    newness = 2.0
+                elif age < 20:
+                    newness = 4.0
+                else:
+                    newness = 7.0
+            # TODO: protect against overflow.
+            return newness / (math.e ** age)
+    
+    def weigh_peer_security(self, false_positives=0, false_negatives=0, total_results=0):
+        """
+        Estimated security of peer decreases with diminished trust in security of peer.
+        
+        @param false_positives: number of false positives over time
+        @type false_positives: C{int}
+
+        @param false_negatives: number of false negatives over time
+        @type false_negatives: C{int}
+
+        @param total_results: number of results given over time
+        @type total_results: C{int}
+        
+        TBD: How to decide if a result is a false positive or false negative.
+        """
+        if total_results < 1:
+            self.peer_security_weight = 1.0
+            return 
+        total = float(total_results)
+        combined_frequency = false_positives / total + false_negatives / total
+        self.peer_security_weight = 1/combined_frequency
+
+    def weigh_commonality(self, num_peers, rate=0.5)
+        """
+        If many peers have the same signature set, reduce the weight of
+        the result
+
+        @param num_peers: the number of peers with the same signature set
+        @type num_peers: C{int}
+
+        @param rate: 0 < rate < 1; for smaller weights set rate closer to 0
+        @type rate: C{float}
+        """
+        if rate <= 0.0 or rate >= 1.0:
+            rate = 0.5
+        self.commonality_weight = rate ** (num_peers - 1)
+
+    def weigh_positive(self, malicious):
+        """
+        If the finding is that the object is malicious, treat it as more likely to be
+        true.  This is based on the following assumptions:
+            1: Malware has a higher probability of biasing results toward
+               false negatives rather than false positives.
+            2: The user experience of having a false positive is better than
+               the experience of having a false negative.
+        """
+        self.positive_scan_weight = 0.7 if malicious else 0.3
+
+    def weigh_altruism(self, distance):
+        """
+        Consider peers to be more altruistic as the social distance decreases.
+
+        @param distance: social distance from peer giving result
+        @type distance: C{int}
+        """
+        if distance < 1:
+            distance = 1
+        self.altruistic_weight = 1.0/distance
+
+    def total_weight(self):
+        """
+        Combine weights to form single weight for scan.
+        W(i) = was(i) * wao(i) * ws(i) * wc(i) * wp(i) * A(p)
+
+        Note that wao(i) is 1.0 unless self.future is True
+        """
+        self.weight = 1.0 * self.signature_weight * self.object_weight * 
+                      self.peer_security_weight * self.commonality_weight *
+                      self.positive_scan_weight * self.altruistic_weight
+        if self.weight >= 1.0:
+            self.weight = 0.5
+        return self.weight
+
+
+def get_scan_weight(scan):
+    scale = Scale()
+    # TODO: get signature age
+    scale.weigh_signature(signature_age)
+    # TODO: get object age (and if scale.future, get whether scan says it is malware)
+    scale.weigh_object(object_age)
+    # TODO: get number of false positives, false negatives, total results
+    scale.weigh_peer_security(false_positives, false_negatives, total_results)
+    # TODO: get number of peers with same signature set
+    scale.weigh_commonality(num_peers)
+    # TODO: get whether scan says object is malicious
+    scale.weigh_positive(malicious)
+    # TODO: get peer social distance
+    scale.weigh_altruism(distance)
+    return scale.total_weight()
+
+# TODO: finish this function
+
+def process(core, request):
+    core.logger.log("determining confidence for url %r" % request.url)
+    maliciousness = WeightedAverager()
+
+    request.retrieveHeaders()  # try to get the filesize, if possible via the headers
+
+    def resolver():
+        core.logger.log("searching digests")
+        for scan in request.digestscans():
+            maliciousness.add(get_scan_weight(scan))
+        yield
+        core.logger.log("searching previous scans")
+        for scan in request.getRelevantScans():
+            maliciousness.add(get_scan_weight(scan))
+        yield
+        core.logger.log("performing local scan")
+        maliciousness.add(get_scan_weight(scan))
+        yield
+        core.logger.log("performing active scan requests")
+        request.requestActiveScans()
+
+    for pause in resolver():
+        if abs(maliciousness.average) > core.confidence_threshold:
+            break
+
+    core.logger.log("average: %f - scan" % maliciousness.average)
+    return Safety(abs(maliciousness.average) > core.confidence_threshold,
+                    maliciousness.average > 0)

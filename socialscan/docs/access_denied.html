@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!-- dynamic code I wrote to handle access denied errors; I decided to strip it down for
+    actual use, which is what is used by main.py in url_malicious.html. this version is
+    here because I didn't want to throw this code out completely. -->
+<html>
+    <head>
+        <title>URL Deemed Unsafe</title>
+        <script type='text/javascript' src='http://code.jquery.com/jquery-1.5.1.js'></script>
+        <style>
+            h1 {
+                margin: 0.2em;
+                font-family: 'Yanone Kaffeesatz', sans-serif;
+                font-weight: bold;
+                font-size: 3.5em;
+            }
+            p {
+                font-family: 'Arial', sans-serif;
+            }
+            .url {
+                font-family: 'lucidia', sans-serif;
+                font-size: 0.8em;
+                color: red;
+            }
+            #content {
+                position: absolute;
+                left: 0px;
+                top: 50%;
+                height: 4em;
+                margin-top: -7em;
+                text-align: center;
+                width: 100%;
+            }
+            .malicious {
+                color: red;
+            }
+            .uncertain {
+                color: orange;
+            }
+        </style>
+        <script>
+            $(window).load(function(){
+                input = location.hash.substring(1);
+                reason = input.substring(0, 1);
+                if (reason == "u") {
+                    reason = "potentially malicious";
+                    classid = "uncertain";
+                } else if (reason == "m") {
+                    reason = "malicious";
+                    classid = "malicious";
+                }
+
+                url = decodeURI(input.substring(1));
+                $(".reason").text(reason);
+                $(".colored").addClass(classid);
+                $(".url").text(url).attr("href", encodeURI(url));
+            });
+        </script>
+    </head>
+    <body>
+        <div id="content">
+            <h1>URL <span class="colored" id="header">DANGEROUS</span></h1>
+            <a href="http://placeholder/" class="url colored">http://placeholder/</a>
+            <p>
+                The url was deemed <span class="reason colored" id="inline">malicious</span> by the scanning system.
+            </p>
+        </div>
+    </body>
+</html>
