@@ -21,7 +21,7 @@ from socialscan.config import loadDefaultConfig
 from socialscan.core import Core
 from socialscan.db import setupDB
 from socialscan.model import Peer
-from socialscan.rpccommands import RPCCommands
+from socialscan.rpccommands import SocialScanRPCCommands
 from socialscan.model.containers import DigestManager, ScanLogManager
 
 
@@ -55,7 +55,7 @@ def main():
     # construct the sharing system that other peers can download from and talk to
     logger.log("Initialize sharing system")
     root = resource.Resource()
-    root.putChild('RPC2', RPCCommands(config, session))
+    root.putChild('RPC2', SocialScanRPCCommands(config, session))
 
     # add the local static content under shared/ that other peers can download digests and such from
     sharedir = os.path.realpath("data/shared/")

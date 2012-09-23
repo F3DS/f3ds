@@ -4,14 +4,14 @@ import os
 import pickle
 import sys
 
-# Modify the path to include the socialscan modules.
-# __file__ is <socialscan source>/socialscan/filehash.py
+# Modify the path to include the F3DS modules.
+# __file__ is <framework source>/f3ds/framework/filehash.py
 pdn = os.path.dirname
 projectdir = pdn(pdn(os.path.abspath(__file__)))
 if projectdir not in sys.path:
     sys.path.append(projectdir)
 
-from socialscan.sethash import hasher
+from f3ds.framework.sethash import hasher
 
 class FileIter(object):
     """

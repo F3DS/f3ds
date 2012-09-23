@@ -23,7 +23,7 @@ for d in [projectdir, path.join(projectdir, 'socialscan'), path.join(projectdir,
 
 from socialscan import searchutil
 from socialscan.model import Peer, ScanDigestFile
-from socialscan import sethash
+from f3ds.framework import sethash
 from socialscan.util import Safety
 
 

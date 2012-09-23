@@ -20,7 +20,7 @@ for d in [projectdir, path.join(projectdir, 'socialscan'), path.join(projectdir,
         sys.path.append(d)
 
 
-from socialscan import sethash
+from f3ds.framework import sethash
 from unittestutils import setConfigValue
 
 

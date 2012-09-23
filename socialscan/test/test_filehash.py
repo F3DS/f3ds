@@ -16,7 +16,10 @@ from unittest import skipUnless
 pdn = path.dirname
 thisfile = path.abspath(__file__)
 projectdir = pdn(pdn(thisfile))
-for d in [projectdir, path.join(projectdir, 'socialscan'), path.join(projectdir, 'util'), 
+for d in [projectdir,
+          path.join(projectdir, 'f3ds'),
+          path.join(projectdir, 'socialscan'),
+          path.join(projectdir, 'util'), 
           path.join(projectdir, 'test')]:
     if d not in sys.path:
         sys.path.append(d)
@@ -26,8 +29,8 @@ tmp_argv = []
 tmp_argv.extend(sys.argv)
 sys.argv = [sys.argv[0], thisfile]
 
-from socialscan import filehash
-from socialscan import sethash
+from f3ds.framework import filehash
+from f3ds.framework import sethash
 
 # Restore argv
 sys.argv = []
@@ -39,7 +42,7 @@ class FilehashTest(unittest.TestCase):
     @skipUnless(sethash.hasher == hashlib.sha512, 'Expected value requires sha512')
     def testFilehash(self):
         'Test calling filehash on this file.'
-        filehash_path = path.join(projectdir, 'socialscan', 'filehash.py')
+        filehash_path = path.join(projectdir, 'f3ds', 'framework', 'filehash.py')
         expected = """\
 077def2303208e3825d52102ccba667e\
 6367602e3f45149ac982f68427fdb30f\

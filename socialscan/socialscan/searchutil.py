@@ -2,7 +2,7 @@
 
 import traceback
 
-from socialscan.sethash import hasher
+from f3ds.framework.sethash import hasher
 
 
 class UrlObject(object):

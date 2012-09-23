@@ -4,8 +4,8 @@ import hashlib
 import os
 import sys
 
-# Modify the path to include the socialscan modules.
-# __file__ is <socialscan source>/socialscan/sethash.py
+# Modify the path to include the F3DS and SocialScan modules.
+# __file__ is <framework source>/f3ds/framework/sethash.py
 pdn = os.path.dirname
 projectdir = pdn(pdn(os.path.abspath(__file__)))
 if projectdir not in sys.path:

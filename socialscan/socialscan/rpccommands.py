@@ -8,22 +8,21 @@ from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from twisted.web import xmlrpc
 
 # Our modules
-from socialscan.model import Peer, QueuedRequest, QueuedRequest, Scan, SentScanRequest
+from socialscan.model import (Peer, BaseQueuedRequest, QueuedRequest, Scan,
+                              BaseSentRequest, SentScanRequest)
 from socialscan.log import Logger
 from socialscan.util import SigInfo
 
-class RPCCommands(xmlrpc.XMLRPC):
+class BaseRPCCommands(xmlrpc.XMLRPC):
     """
     RPC functions that are offered to other peers.
-
-    todo: This class could use a more descriptive name
     """
     allowNone = True
     useDateTime = True
     def __init__(self, config, session):
         self.session = session
         self.config = config
-        self.logger = Logger("RPCFunctions")
+        self.logger = Logger("BaseRPCFunctions")
 
     def _getpeer(self, peername, action):
         """
@@ -78,25 +77,81 @@ class RPCCommands(xmlrpc.XMLRPC):
             self.logger.exception()
             return "exception"
 
+    def xmlrpc_logOffer(self, peername, url, logtype=''):
+        """
+        Called by a peer to offer a log. Stores the offer so that a worker
+        can retrieve it later (due to the large size logs can reach).
+        """
+        try:
+            peer = self._getpeer(peername, "offered a %slog on url %s" % (logtype, url))
+            if not peer:
+                return "peer not known"
+
+            request = QueuedRequest(self.config.owner, "%slog-offer" % (logtype), peer, url)
+
+            self.session.add(request)
+            self.session.commit()
+            self.logger.log("%slog offer: %r" % (logtype, request,))
+            return "success"
+        except:
+            self.logger.exception()
+            return "exception"
+
+    def xmlrpc_request(self, peername, url, key, requesttype=''):
+        try:
+            peer = self._getpeer(peername, "requested a %s on url %s" % (requesttype, url))
+            if not peer:
+                return "peer not known"
+
+            request = BaseQueuedRequest(self.config.owner, peer, url, key=key)
+            self.session.add(request)
+            self.session.commit()
+
+            self.logger.log("request %r: %r" % (key, request))
+            return "success"
+        except:
+            self.logger.exception()
+            return "exception"
+
+    def xmlrpc_result(self, peername, url, key):
+        try:
+            peer = self._getpeer(peername, "returned a %s on url %s" % (resulttype, url))
+            if not peer:
+                return "peer not known"
+
+            request = self.session.query(BaseSentRequest).\
+                        filter(BaseSentRequest.owner == self.config.owner).\
+                        filter(BaseSentRequest.key == key).\
+                        filter(BaseSentRequest.peer == peer).\
+                        filter(BaseSentRequest.url == url).first()
+            if not request:
+                msg = "Peer %r attempted to return a result for url %r"
+                msg += " with key %r, but no such result was requested"
+                self.log(msg % (peer, url, key))
+                return "no such request"
+            self.session.add(request)
+            self.session.commit()
+            self.logger.log("Result %r: %r" % (key, scan))
+            return "success"
+        except:
+            self.logger.exception()
+            return "exception"
+
+
+class SocialScanRPCCommands(BaseRPCCommands):
+    """
+    SocialScan RPC functions that are offered to other peers.
+    """
+    def __init__(self, config, session):
+        super(SocialScanRPCCommands, self).__init__(config, session)
+        self.logger = Logger("RPCFunctions")
+
     def xmlrpc_scanlogOffer(self, peername, url):
         """
         Called by a peer to offer a scanlog. Stores the offer so that a worker
         can retrieve it later (due to the large size scanlogs often reach).
         """
-        try:
-            peer = self._getpeer(peername, "offered a scanlog on url %s" % url)
-            if not peer:
-                return "peer not known"
-
-            request = QueuedRequest(self.config.owner, "scanlog-offer", peer, url)
-
-            self.session.add(request)
-            self.session.commit()
-            self.logger.log("scanlog offer: %r" % (request,))
-            return "success"
-        except:
-            self.logger.exception()
-            return "exception"
+        self.xmlrpc_logOffer(peername, url, logtype='scan')
 
     def xmlrpc_scanRequest(self, peername, url, key):
         try:
@@ -104,8 +159,8 @@ class RPCCommands(xmlrpc.XMLRPC):
             if not peer:
                 return "peer not known"
 
-            request = QueuedRequest(self.config.owner, "active-scan",
-                        peer, url, key=key)
+            request = QueuedRequest(self.config.owner, "active-scan", peer,
+                                    url, key=key)
             self.session.add(request)
             self.session.commit()
 
@@ -115,18 +170,18 @@ class RPCCommands(xmlrpc.XMLRPC):
             self.logger.exception()
             return "exception"
 
-    def xmlrpc_scanResult(self, peername, url, hash, key, malicious, scannervv,
-                        sigversion, sigdatestr):
+    def xmlrpc_scanResult(self, peername, url, hash, key, malicious,
+                          scannervv, sigversion, sigdatestr):
         try:
             peer = self._getpeer(peername, "returned a scan on url %s" % url)
             if not peer:
                 return "peer not known"
 
             request = self.session.query(SentScanRequest).\
-                            filter(SentScanRequest.owner == self.config.owner).\
-                            filter(SentScanRequest.key == key).\
-                            filter(SentScanRequest.peer == peer).\
-                            filter(SentScanRequest.url == url).first()
+                        filter(SentScanRequest.owner == self.config.owner).\
+                        filter(SentScanRequest.key == key).\
+                        filter(SentScanRequest.peer == peer).\
+                        filter(SentScanRequest.url == url).first()
             if not request:
                 self.log("Peer %r attempted to return a scan result for "
                             "url %r with key %r, but no such scan was requested"
@@ -138,8 +193,8 @@ class RPCCommands(xmlrpc.XMLRPC):
             hash = hash or None  # if the hash is empty or similar, replace with None
 
             scan = Scan(self.config.owner, "social-active", url, malicious,
-                            siginfo=SigInfo(scannervv, sigversion, sigdate),
-                            hash=hash, sentrequest=request, peer=peer)
+                        siginfo=SigInfo(scannervv, sigversion, sigdate),
+                        hash=hash, sentrequest=request, peer=peer)
             self.session.add(scan)
             self.session.commit()
             self.logger.log("Scan result %r: %r" % (key, scan))

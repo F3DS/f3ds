@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
 """
-ScanLib: Scanning Library
+scanning.py: Scanning Library
 
-Classes: ScanLib
+Classes: ScannableRequest
 """
 
 __author__ = 'Jun Park and Matt Probst'
@@ -34,7 +34,10 @@ from socialscan.log import Logger
 from socialscan.model import Peer, Scan, SentScanRequest, ScanDigestFile, SocialRelationship
 from socialscan.util import Safety, cached, TimeMeasurer
 
-thisdir = os.path.realpath(os.path.dirname(__file__))
+# __file__ is <source dir>/socialscan/socialscan/scanning.py
+# F3DS dir is <source dir>/f3ds/framework/
+dn = os.path.dirname
+f3dsdir = os.path.realpath(dn(dn(dn(__file__))))
 
 
 class ScannableRequest(object):
@@ -116,7 +119,7 @@ class ScannableRequest(object):
             self.fileid = id
             # grab file with a subprocess...
             script_name = 'urlretrieve.py'
-            script_path = os.path.join(thisdir, script_name)
+            script_path = os.path.join(f3dsdir, script_name)
             proc = subprocess.Popen(["python", script_path, self.url, filepath],
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             proc.wait()
@@ -238,7 +241,7 @@ class ScannableRequest(object):
         """
         # Read file contents using a subprocess.
         script_name = 'filehash.py'
-        script_path = os.path.join(thisdir, script_name)
+        script_path = os.path.join(f3dsdir, script_name)
         # TODO: add a Timer thread to interrupt if it takes too long.
         try:
             data = subprocess.check_output(['python', script_path, self.filepath])

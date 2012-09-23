@@ -66,7 +66,7 @@ class HandlerProxy(object):
         msg = 'decision_handler module must contain a function matching "process(core, request)"'
         raise NotImplementedError(msg)
 
-
+# TODO: refactor CoreRequest to reflect F3DS framework.
 class CoreRequest(Protocol):
     def __init__(self, core):
         self.core = core
@@ -124,7 +124,7 @@ class CoreRequest(Protocol):
             self.logger.exception()
             self.transport.loseConnection()
 
-
+# TODO: refactor Core to reflect F3DS framework.
 class Core(Factory):
     def __init__(self, config, session, digestmanager, scanlogmanager):
         self.logger = Logger('SocialScan')

@@ -399,60 +399,64 @@ class ScanLogFile(ContainerMixin, Base):
         self.container_type_name = 'ScanLog'
 
 
-class QueuedRequest(Base):
+class BaseQueuedRequest(Base):
+    """
+    A queued request for extension by F3DS applications.
+    """
+    __tablename__ = 'basequeuedrequest'
+    id = Column(Integer, nullable=False, primary_key=True)
+    owner_id = Column(Integer, ForeignKey('peers.id'), nullable=False)
+    peer_id = Column(Integer, ForeignKey('peers.id'), nullable=False)
+    time = Column(DateTime, default=datetime.utcnow, nullable=False)
+    url = Column(String(1024), nullable=False)
+    fulfilled_time = Column(DateTime, nullable=True)
+    key = Column(String(16))
+    state = Column(Enum("received", "processed", "done"), default="received", nullable=False)
+
+    def __init__(self, owner, peer, url, key=None):
+        self.owner = owner
+        self.peer = peer
+        self.url = url
+        if key:
+            self.key = key
+        self.state = "received"
+
+    def __repr__(self):
+        s = "BaseQueuedRequest(id=%r, %r, %r, %r, key=%r) from %r: %r (done at %r)"
+        return s % (self.id, self.owner, self.peer, self.url, self.key,
+                    self.time, self.state, self.fulfilled_time)
+
+
+# An implementation of BaseQueuedRequest for SocialScan, an F3DS application.
+class QueuedRequest(BaseQueuedRequest):
     """
     A request that was received from a peer and has been queued for processing
     For type, any "offer" will be the lower-case class name, suffixed with "-offer"
     """
     __tablename__ = 'incomingqueue'
-
-    id = Column(Integer, nullable=False, primary_key=True)
-    owner_id = Column(Integer, ForeignKey('peers.id'), nullable=False)
-
-    peer_id = Column(Integer, ForeignKey('peers.id'), nullable=False)
     type = Column(Enum("active-scan", "scandigestfile-offer", "scanlogfile-offer"), nullable=False)
-    time = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-    url = Column(String(1024), nullable=False)
-    fulfilled_time = Column(DateTime, nullable=True)
-
-    key = Column(String(16))
-
-    state = Column(Enum("received", "processed", "done"), default="received", nullable=False)
-
     scan = relationship("Scan", uselist=False, backref="request")
 
     def __init__(self, owner, type, peer, url, key=None):
-        self.owner = owner
+        super(QueuedRequest, self).__init__(owner, peer, url, key)
         self.type = type
-        self.peer = peer
-        self.url = url
-        if key:
-            self.key = key
-
-        self.state = "received"
 
     def __repr__(self):
-        return "QueuedRequest(id=%r, %r, %r, %r, %r, key=%r) from %r: %r (done at %r) - scanned as %r" %\
-                    (self.id, self.owner, self.type, self.peer, self.url, self.key,\
-                     self.time, self.state, self.fulfilled_time, self.scan)
+        s = "QueuedRequest(id=%r, %r, %r, %r, %r, key=%r) from %r: %r (done at %r) - scanned as %r"
+        return s % (self.id, self.owner, self.type, self.peer, self.url, self.key, 
+                    self.time, self.state, self.fulfilled_time, self.scan)
 
 
-class SentScanRequest(Base):
+class BaseSentRequest(Base):
     """
-    Table for active scan requests sent out to other peers - this is for local use only!
+    A sent request for extension by F3DS applications.
     """
-    __tablename__ = 'sentscanrequests'
-
+    __tablename__ = 'basesentrequests'
     id = Column(Integer, nullable=False, primary_key=True)
     owner_id = Column(Integer, ForeignKey('peers.id'), nullable=False)
-
     peer_id = Column(Integer, ForeignKey('peers.id'), nullable=False)
     url = Column(String(1024), nullable=False)
     key = Column(String(16), nullable=False)
-    ignored = Column(Boolean, nullable=True)
-
-    scan = relationship(Scan, backref='sent_request', uselist=False)
 
     @classmethod
     def generate_key(cls):
@@ -463,10 +467,22 @@ class SentScanRequest(Base):
 
     def __init__(self, owner, url, peer):
         self.key = self.generate_key()
-
         self.owner = owner
         self.url = url
         self.peer = peer
+
+
+# An implementation of BaseSentRequest for SocialScan, an F3DS application.
+class SentScanRequest(BaseSentRequest):
+    """
+    Table for active scan requests sent out to other peers - this is for local use only!
+    """
+    __tablename__ = 'sentscanrequests'
+    ignored = Column(Boolean, nullable=True)
+    scan = relationship(Scan, backref='sent_request', uselist=False)
+
+    def __init__(self, owner, url, peer):
+        super(SentScanRequest, self).__init__(owner, url, peer)
 
 
 class SocialRelationship(Base):
@@ -508,60 +524,30 @@ class SocialRelationship(Base):
                                  ((1.0 - multiplier) * self.pdistance))
 
 
-class Peer(Base):
+class BasePeer(Base):
     """
+    Peer class for extension by F3DS applications.
     """
-    __tablename__ = 'peers'
-
+    __tablename__ = 'basepeers'
     id = Column(Integer, nullable=False, primary_key=True)
     username = Column(String(80), nullable=False)
     password = Column(String(80), nullable=False)
-    ss_url = Column(String(128), nullable=False)
+    rpc_url = Column(String(128), nullable=False)
     timeout = Column(Integer)
-
-    digests = relationship(ScanDigestFile,
-                           backref='creator',
-                           primaryjoin="Peer.id==ScanDigestFile.creator_id and Scan.tainted==False")
-    scanlogs = relationship(ScanLogFile,
-                           backref='creator',
-                           primaryjoin="Peer.id==ScanLogFile.creator_id and Scan.tainted==False")
-    requests = relationship(QueuedRequest,
-                            backref='peer',
-                            primaryjoin="Peer.id==QueuedRequest.peer_id")
-    scans = relationship(Scan,
-                         backref='peer',
-                         primaryjoin="Peer.id==Scan.peer_id and Scan.tainted==False")
-    sentscanrequests = relationship(SentScanRequest,
-                                    backref='peer',
-                                    primaryjoin="Peer.id==SentScanRequest.peer_id")
-    _owned_digests = relationship(ScanDigestFile,
-                                  backref='owner',
-                                   primaryjoin="Peer.id==ScanDigestFile.owner_id")
-    _owned_scanlogs = relationship(ScanLogFile,
-                                  backref='owner',
-                                   primaryjoin="Peer.id==ScanLogFile.owner_id")
-    _owned_requests = relationship(QueuedRequest,
-                                   backref='owner',
-                                    primaryjoin="Peer.id==QueuedRequest.owner_id")
-    _owned_scans = relationship(Scan,
-                                backref='owner',
-                                primaryjoin="Peer.id==Scan.owner_id")
-    _owned_sentscanrequests = relationship(SentScanRequest,
-                                           backref='owner',
-                                           primaryjoin="Peer.id==SentScanRequest.owner_id")
-
+ 
     def __init__(self, username, password, url):
         self.username = username
         self.password = password
-        self.ss_url = url
+        self.rpc_url = url
         try:
+            # TODO: create f3ds.config; use it here.
             from socialscan.config import loadDefaultConfig
             self.timeout = loadDefaultConfig().core.network_timeout
         except:
             self.timeout = 10
 
     def __repr__(self):
-        return "Peer(id=%r, %r, %r, %r)" % (self.id, self.username, self.password, self.ss_url)
+        return "Peer(id=%r, %r, %r, %r)" % (self.id, self.username, self.password, self.rpc_url)
 
     @property
     def transport(self):
@@ -570,7 +556,7 @@ class Peer(Base):
         """
         transport_with_timeout = util.TimeoutedTransport()
         transport_with_timeout.set_timeout(self.timeout)
-        return xmlrpclib.ServerProxy(self.ss_url+"RPC2", allow_none=True,
+        return xmlrpclib.ServerProxy(self.rpc_url+"RPC2", allow_none=True,
                                      transport=transport_with_timeout)
 
     def getRelationship(self, session, peer):
@@ -615,6 +601,52 @@ class Peer(Base):
         return self.queryRelated(session)\
                         .filter(SocialRelationship.pdistance <= distance)\
                         .all()
+
+
+class Peer(BasePeer):
+    """
+    An implementation of BasePeer for SocialScan, an F3DS application.
+    """
+    __tablename__ = 'peers'
+    digests = relationship(ScanDigestFile,
+                           backref='creator',
+                           primaryjoin="Peer.id==ScanDigestFile.creator_id and Scan.tainted==False")
+    scanlogs = relationship(ScanLogFile,
+                           backref='creator',
+                           primaryjoin="Peer.id==ScanLogFile.creator_id and Scan.tainted==False")
+    requests = relationship(QueuedRequest,
+                            backref='peer',
+                            primaryjoin="Peer.id==QueuedRequest.peer_id")
+    scans = relationship(Scan,
+                         backref='peer',
+                         primaryjoin="Peer.id==Scan.peer_id and Scan.tainted==False")
+    sentscanrequests = relationship(SentScanRequest,
+                                    backref='peer',
+                                    primaryjoin="Peer.id==SentScanRequest.peer_id")
+    _owned_digests = relationship(ScanDigestFile,
+                                  backref='owner',
+                                   primaryjoin="Peer.id==ScanDigestFile.owner_id")
+    _owned_scanlogs = relationship(ScanLogFile,
+                                  backref='owner',
+                                   primaryjoin="Peer.id==ScanLogFile.owner_id")
+    _owned_requests = relationship(QueuedRequest,
+                                   backref='owner',
+                                    primaryjoin="Peer.id==QueuedRequest.owner_id")
+    _owned_scans = relationship(Scan,
+                                backref='owner',
+                                primaryjoin="Peer.id==Scan.owner_id")
+    _owned_sentscanrequests = relationship(SentScanRequest,
+                                           backref='owner',
+                                           primaryjoin="Peer.id==SentScanRequest.owner_id")
+
+    def __init__(self, username, password, url):
+        super(Peer, self).__init__(username, password, url)
+        # Override f3ds default network timeout if set in socialscan config.
+        try:
+            from socialscan.config import loadDefaultConfig
+            self.timeout = loadDefaultConfig().core.network_timeout
+        except:
+            pass
 
 
 ######################## Queries #############################
