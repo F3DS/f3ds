@@ -19,8 +19,8 @@ from twisted.protocols import basic
 from twisted.internet.endpoints import TCP4ClientEndpoint
 
 # Our imports
+from f3ds.framework.log import Logger
 from socialscan.config import loadDefaultConfig
-from socialscan.log import Logger
 from socialscan.core import CoreClientFactory
 
 

@@ -20,7 +20,8 @@ def formatname(logdir, name, fmt='{name}_%Y-%m-%d_%H%M.log'):
     """
     logfile = fmt.format(name=name)
     logfile = process_start.strftime(logfile)
-    logfile = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", logdir, logfile))
+    # For now, we want the path to be relative to the current directory
+    logfile = os.path.realpath(os.path.join(os.getcwd(), logdir, logfile))
     return logfile
 
 def uniqify(logdir, name):
@@ -38,16 +39,15 @@ def uniqify(logdir, name):
 stdoutlog = False
 
 class Logger(object):
-    def __init__(self, name):
+    def __init__(self, name, logdir=''):
         global process_writer
         self.logging = True
         self.name = name
 
-
-        logdir = "data/log/"
+        if not logdir:
+            logdir = "data/log/"
         if not os.path.exists(logdir):
             os.makedirs(logdir)
-
         if not process_writer:
             logfile = uniqify(logdir, name)
             self.logger = open(logfile, "w")

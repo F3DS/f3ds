@@ -8,9 +8,9 @@ from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from twisted.web import xmlrpc
 
 # Our modules
+from f3ds.framework.log import Logger
 from socialscan.model import (Peer, BaseQueuedRequest, QueuedRequest, Scan,
                               BaseSentRequest, SentScanRequest)
-from socialscan.log import Logger
 from socialscan.util import SigInfo
 
 class BaseRPCCommands(xmlrpc.XMLRPC):

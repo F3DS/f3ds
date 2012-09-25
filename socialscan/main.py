@@ -16,7 +16,7 @@ from twisted.web import resource
 from twisted.internet.endpoints import TCP4ServerEndpoint
 
 # Our modules
-from socialscan import log
+from f3ds.framework import log
 from socialscan.config import loadDefaultConfig
 from socialscan.core import Core
 from socialscan.db import setupDB

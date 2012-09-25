@@ -5,7 +5,7 @@ from socialscan.config import loadDefaultConfig
 from socialscan.db import setupDB
 from socialscan.scanning import ScannableRequest
 from socialscan.model import Peer
-from socialscan import log
+from f3ds.framework import log
 import json
 import sys'''
 

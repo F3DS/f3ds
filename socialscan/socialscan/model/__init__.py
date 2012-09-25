@@ -18,7 +18,7 @@ from datetime import datetime
 # 3rd party modules
 from sqlalchemy import (Boolean, Column, DateTime, Enum, Float, Integer, String,
                         ForeignKey, MetaData, and_, or_)
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import mapper, relationship, backref
 
 # Our modules
@@ -399,14 +399,18 @@ class ScanLogFile(ContainerMixin, Base):
         self.container_type_name = 'ScanLog'
 
 
-class BaseQueuedRequest(Base):
+class BaseQueuedRequest(object):
     """
     A queued request for extension by F3DS applications.
     """
-    __tablename__ = 'basequeuedrequest'
+    #__tablename__ = 'incomingqueue' # Set the tablename in an implementation of BaseQueuedRequest.
     id = Column(Integer, nullable=False, primary_key=True)
-    owner_id = Column(Integer, ForeignKey('peers.id'), nullable=False)
-    peer_id = Column(Integer, ForeignKey('peers.id'), nullable=False)
+    @declared_attr
+    def owner_id(cls):
+        return Column(Integer, ForeignKey('peers.id'), nullable=False)
+    @declared_attr
+    def peer_id(cls):
+        return Column(Integer, ForeignKey('peers.id'), nullable=False)
     time = Column(DateTime, default=datetime.utcnow, nullable=False)
     url = Column(String(1024), nullable=False)
     fulfilled_time = Column(DateTime, nullable=True)
@@ -428,12 +432,14 @@ class BaseQueuedRequest(Base):
 
 
 # An implementation of BaseQueuedRequest for SocialScan, an F3DS application.
-class QueuedRequest(BaseQueuedRequest):
+class QueuedRequest(BaseQueuedRequest, Base):
     """
     A request that was received from a peer and has been queued for processing
     For type, any "offer" will be the lower-case class name, suffixed with "-offer"
     """
     __tablename__ = 'incomingqueue'
+    extend_existing = True
+    autoload = True
     type = Column(Enum("active-scan", "scandigestfile-offer", "scanlogfile-offer"), nullable=False)
     scan = relationship("Scan", uselist=False, backref="request")
 
@@ -447,14 +453,18 @@ class QueuedRequest(BaseQueuedRequest):
                     self.time, self.state, self.fulfilled_time, self.scan)
 
 
-class BaseSentRequest(Base):
+class BaseSentRequest(object):
     """
     A sent request for extension by F3DS applications.
     """
-    __tablename__ = 'basesentrequests'
+    #__tablename__ = 'basesentrequests' # Set the table name in an implementation of BaseSentRequest.
     id = Column(Integer, nullable=False, primary_key=True)
-    owner_id = Column(Integer, ForeignKey('peers.id'), nullable=False)
-    peer_id = Column(Integer, ForeignKey('peers.id'), nullable=False)
+    @declared_attr
+    def owner_id(cls):
+        return Column(Integer, ForeignKey('peers.id'), nullable=False)
+    @declared_attr
+    def peer_id(cls):
+        return Column(Integer, ForeignKey('peers.id'), nullable=False)
     url = Column(String(1024), nullable=False)
     key = Column(String(16), nullable=False)
 
@@ -473,7 +483,7 @@ class BaseSentRequest(Base):
 
 
 # An implementation of BaseSentRequest for SocialScan, an F3DS application.
-class SentScanRequest(BaseSentRequest):
+class SentScanRequest(BaseSentRequest, Base):
     """
     Table for active scan requests sent out to other peers - this is for local use only!
     """
@@ -524,11 +534,11 @@ class SocialRelationship(Base):
                                  ((1.0 - multiplier) * self.pdistance))
 
 
-class BasePeer(Base):
+class BasePeer(object):
     """
     Peer class for extension by F3DS applications.
     """
-    __tablename__ = 'basepeers'
+    #__tablename__ = 'basepeers' # Set the table name in an implementation of BasePeer.
     id = Column(Integer, nullable=False, primary_key=True)
     username = Column(String(80), nullable=False)
     password = Column(String(80), nullable=False)
@@ -603,7 +613,7 @@ class BasePeer(Base):
                         .all()
 
 
-class Peer(BasePeer):
+class Peer(BasePeer, Base):
     """
     An implementation of BasePeer for SocialScan, an F3DS application.
     """

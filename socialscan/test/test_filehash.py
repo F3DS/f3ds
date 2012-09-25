@@ -16,8 +16,9 @@ from unittest import skipUnless
 pdn = path.dirname
 thisfile = path.abspath(__file__)
 projectdir = pdn(pdn(thisfile))
+f3dsdir = pdn(projectdir)
 for d in [projectdir,
-          path.join(projectdir, 'f3ds'),
+          f3dsdir,
           path.join(projectdir, 'socialscan'),
           path.join(projectdir, 'util'), 
           path.join(projectdir, 'test')]:

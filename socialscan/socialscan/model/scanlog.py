@@ -13,9 +13,9 @@ from os import path
 # 3rd party modules
 
 # Our modules
+from f3ds.framework.log import Logger
 from socialscan.config import loadDefaultConfig
 from socialscan.exceptions import ContainerFullError
-from socialscan.log import Logger
 from socialscan.util import Safety, SigInfo
 
 

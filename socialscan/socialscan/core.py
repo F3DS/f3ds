@@ -8,11 +8,11 @@ from twisted.internet.protocol import Factory, Protocol
 from twisted.internet.endpoints import TCP4ClientEndpoint
 
 # Our modules
+from f3ds.framework.log import Logger
 from socialscan import decisionhandlers
 from socialscan import scanning
 from socialscan.config import loadDefaultConfig
 from socialscan.db import setupDB
-from socialscan.log import Logger
 from socialscan.model import Peer, Scan
 from socialscan.util import Safety, WeightedAverager
 

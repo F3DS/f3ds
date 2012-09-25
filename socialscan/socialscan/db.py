@@ -9,8 +9,9 @@ Classes: DBHandlers
 __author__ = 'Jun Park and Matt Probst'
 __version__ = '0.1'
 
+from f3ds.framework.log import Logger
 from socialscan import model
-from socialscan.log import Logger
+
 
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine

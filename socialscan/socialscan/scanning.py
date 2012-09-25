@@ -28,9 +28,9 @@ from datetime import datetime
 from twisted.internet import defer, reactor
 
 # Our modules
+from f3ds.framework.log import Logger
 from socialscan import scanhandlers
 from socialscan.exceptions import IncompleteScanError
-from socialscan.log import Logger
 from socialscan.model import Peer, Scan, SentScanRequest, ScanDigestFile, SocialRelationship
 from socialscan.util import Safety, cached, TimeMeasurer
 
@@ -38,6 +38,7 @@ from socialscan.util import Safety, cached, TimeMeasurer
 # F3DS dir is <source dir>/f3ds/framework/
 dn = os.path.dirname
 f3dsdir = os.path.realpath(dn(dn(dn(__file__))))
+frameworkdir = os.path.join(f3dsdir, 'framework')
 
 
 class ScannableRequest(object):
@@ -119,7 +120,7 @@ class ScannableRequest(object):
             self.fileid = id
             # grab file with a subprocess...
             script_name = 'urlretrieve.py'
-            script_path = os.path.join(f3dsdir, script_name)
+            script_path = os.path.join(frameworkdir, script_name)
             proc = subprocess.Popen(["python", script_path, self.url, filepath],
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             proc.wait()
@@ -241,7 +242,7 @@ class ScannableRequest(object):
         """
         # Read file contents using a subprocess.
         script_name = 'filehash.py'
-        script_path = os.path.join(f3dsdir, script_name)
+        script_path = os.path.join(frameworkdir, script_name)
         # TODO: add a Timer thread to interrupt if it takes too long.
         try:
             data = subprocess.check_output(['python', script_path, self.filepath])
