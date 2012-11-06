@@ -25,7 +25,7 @@ for d in [projectdir, path.join(projectdir, 'socialscan'), path.join(projectdir,
     if d not in sys.path:
         sys.path.append(d)
 
-from socialscan.exceptions import ContainerFullError, ZeroSizedDigestError, DigestModifiedTimeError
+from f3ds.framework.exceptions import ContainerFullError, ZeroSizedDigestError, DigestModifiedTimeError
 from socialscan.model import scandigest
 from socialscan.searchutil import UrlObject
 from socialscan.util import SigInfo

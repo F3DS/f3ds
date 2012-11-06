@@ -23,7 +23,7 @@ for d in [projectdir, path.join(projectdir, 'socialscan'), path.join(projectdir,
     if d not in sys.path:
         sys.path.append(d)
 
-from socialscan.exceptions import ContainerFullError
+from f3ds.framework.exceptions import ContainerFullError
 from socialscan.model import scanlog
 from socialscan.searchutil import UrlObject
 from socialscan.util import SigInfo, Safety

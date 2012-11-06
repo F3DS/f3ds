@@ -9,6 +9,8 @@ from twisted.internet.endpoints import TCP4ClientEndpoint
 
 # Our modules
 from f3ds.framework.log import Logger
+from f3ds.framework.core import (Core, CoreRequest, CoreClientRequest,
+                                 CoreClientFactory, BaseHandlerProxy)
 from socialscan import decisionhandlers
 from socialscan import scanning
 from socialscan.config import loadDefaultConfig
@@ -16,24 +18,16 @@ from socialscan.db import setupDB
 from socialscan.model import Peer, Scan
 from socialscan.util import Safety, WeightedAverager
 
-class HandlerProxy(object):
+class DecisionHandlerProxy(BaseHandlerProxy):
     """
-    Handler proxy. contains default implementations which will be used if something is missing from the
-    handler implementation.
+    Decision Handler proxy.  Contains default implementations which will be
+    used if something is missing from the handler implementation.
     """
     def __init__(self, handler):
-        self._handler = handler
-        self.port = 8123
-
-    def __getattribute__(self, attribute):
-        """
-        Custom implementation of __getattribute__ to retrieve attributes from the provided
-        handler first, then from the class if they cannot be found in the handler.
-        """
-        try:
-            return getattr(object.__getattribute__(self, "_handler"), attribute)
-        except AttributeError:
-            return object.__getattribute__(self, attribute)
+        super(DecisionHandlerProxy, self).__init__(handler)
+        # If desired, set a different default for self.port
+        #self.port = 8123
+        self.not_implemented = 'decision_' + self.not_implemented
 
     def deny(self, core, request):
         "Determine what string should be returned to squid to deny this url"
@@ -56,6 +50,7 @@ class HandlerProxy(object):
     def process(self, core, request):
         """
         Determine the safety status of a url.
+        Overridden to provide documentation for decision_handler writers.
         
         @type request: L{socialscan.scanning.ScannableRequest}
         @param request: Request object 
@@ -63,29 +58,12 @@ class HandlerProxy(object):
         @rtype: L{socialscan.util.Safety}
         @return: Computed Safety value of the request
         """
-        msg = 'decision_handler module must contain a function matching "process(core, request)"'
-        raise NotImplementedError(msg)
+        raise NotImplementedError(self.not_implemented)
 
-# TODO: refactor CoreRequest to reflect F3DS framework.
-class CoreRequest(Protocol):
+
+class SocialScanCoreRequest(CoreRequest):
     def __init__(self, core):
-        self.core = core
-        self.handler = core.handler
-        self.logger = Logger('SocialScan Request')
-        self.input = []
-        self.timeout = core.handle_timeout
-
-    def dataReceived(self, data):
-        if "\x04" in data:
-            self.input.append(data.partition("\x04")[0])
-            url = json.loads("".join(self.input))
-            self.handle_url(url)
-        else:
-            self.input.append(data)
-
-    def reply(self, result):
-        self.transport.write(json.dumps(result))
-        self.transport.loseConnection()
+        super(SocialScanCoreRequest, self).__init__(core, logger_name='SocialScan Request')
 
     @defer.inlineCallbacks
     def handle_url(self, url):
@@ -124,47 +102,15 @@ class CoreRequest(Protocol):
             self.logger.exception()
             self.transport.loseConnection()
 
-# TODO: refactor Core to reflect F3DS framework.
-class Core(Factory):
+
+class SocialScanCore(Core):
     def __init__(self, config, session, digestmanager, scanlogmanager):
-        self.logger = Logger('SocialScan')
-        self.config = config
-        self.session = session
-        self.timeout = datetime.timedelta(seconds=int(config.core.network_timeout))
-        self.handle_timeout = datetime.timedelta(seconds=int(config.core.system_timeout))
+        super(SocialScanCore, self).__init__(config, session, digestmanager,
+                                             scanlogmanager, logname='SocialScan')
         self.confidence_threshold = float(config.core.confidence_threshold)
         self.logger.log("confidence threshold: %f" % self.confidence_threshold)
-        self.handler = HandlerProxy(decisionhandlers.get(config.core.decision_handler))
+        self.handler = DecisionHandlerProxy(decisionhandlers.get(config.core.decision_handler))
         self.handler.port = config.sharing.port
-        self.digestmanager = digestmanager
-        self.scanlogmanager = scanlogmanager
 
     def buildProtocol(self, addr):
-        return CoreRequest(self)
-
-
-class CoreClientRequest(Protocol):
-    def __init__(self, url, callback):
-        self.url = url
-        self.callback = callback
-        self.input = []
-
-    def connectionMade(self):
-        self.transport.write(json.dumps(self.url))
-        self.transport.write("\x04")
-
-    def dataReceived(self, data):
-        self.input.append(data)
-
-    def connectionLost(self, reason):
-        self.callback(json.loads("".join(self.input)).encode("utf-8"))
-
-
-class CoreClientFactory(Factory):
-    def __init__(self, url, callback):
-        self.url = url
-        self.callback = callback
-
-    def buildProtocol(self, addr):
-        return CoreClientRequest(self.url, self.callback)
-
+        return SocialScanCoreRequest(self)

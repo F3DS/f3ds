@@ -20,8 +20,8 @@ from twisted.internet.endpoints import TCP4ClientEndpoint
 
 # Our imports
 from f3ds.framework.log import Logger
+from f3ds.framework.core import CoreClientFactory
 from socialscan.config import loadDefaultConfig
-from socialscan.core import CoreClientFactory
 
 
 class Redirector(basic.LineOnlyReceiver):

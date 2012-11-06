@@ -17,7 +17,8 @@ from pybloom import ScalableBloomFilter
 
 # Our modules
 from f3ds.framework.log import Logger
-from socialscan.exceptions import ContainerFullError, ZeroSizedDigestError, DigestModifiedTimeError
+from f3ds.framework.exceptions import (ContainerFullError, ZeroSizedDigestError,
+                                       DigestModifiedTimeError)
 from socialscan.searchutil import UrlObject
 from socialscan.util import SigInfo
 

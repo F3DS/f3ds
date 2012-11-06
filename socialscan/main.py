@@ -18,7 +18,7 @@ from twisted.internet.endpoints import TCP4ServerEndpoint
 # Our modules
 from f3ds.framework import log
 from socialscan.config import loadDefaultConfig
-from socialscan.core import Core
+from socialscan.core import SocialScanCore
 from socialscan.db import setupDB
 from socialscan.model import Peer
 from socialscan.rpccommands import SocialScanRPCCommands
@@ -73,7 +73,7 @@ def main():
                         factory=Site(root))
 
     endpoint = TCP4ServerEndpoint(reactor, int(config.scanning._core_port), interface="127.0.0.1")
-    endpoint.listen(Core(config, session, digestmanager, scanlogmanager))
+    endpoint.listen(SocialScanCore(config, session, digestmanager, scanlogmanager))
 
     logger.log("Running reactor")
     reactor.run()

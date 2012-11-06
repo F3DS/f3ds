@@ -29,9 +29,9 @@ from twisted.internet.task import LoopingCall
 # Our modules
 from f3ds.framework.log import Logger
 from f3ds.framework.model.containers import ContainerManager
+from f3ds.framework.exceptions import ContainerFullError
 from socialscan import scanhandlers, scanning
 from socialscan import util
-from socialscan.exceptions import ContainerFullError
 from socialscan.model import (QueuedRequest, relationshipsQuery, requestQuery,
                               Scan, ScanDigestFile, ScanLogFile)
 from socialscan.model.scandigest import ScanDigest
