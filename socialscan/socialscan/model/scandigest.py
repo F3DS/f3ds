@@ -19,11 +19,12 @@ from pybloom import ScalableBloomFilter
 from f3ds.framework.log import Logger
 from f3ds.framework.exceptions import (ContainerFullError, ZeroSizedDigestError,
                                        DigestModifiedTimeError)
-from socialscan.searchutil import UrlObject
+from f3ds.framework.model.digest import Digest
+from f3ds.framework.util import UrlObject
 from socialscan.util import SigInfo
 
 
-class ScanDigest(object):
+class ScanDigest(Digest):
     """
     IMPORTANT:
     this class should be considered an implementation detail of the higher level
@@ -64,85 +65,16 @@ class ScanDigest(object):
         @param nonce: if not None, the nonce to use. When None, a new one will be generated.
         @type nonce: C{int}
         """
-        self.saved = True  # nothing to save until add is called.
-        if nonce != None:
-            self.nonce = nonce
-        else:
-            self.nonce = random.randint(0, 0xffffffff)
-        self.filterS = filterS or ScalableBloomFilter()
-        self.maxcapacity = maxcapacity
+        super(ScanDigest, self).__init__(maxcapacity, siginfo, filename, filterS, nonce)
         self.siginfo = siginfo
-        self.urlcount = 0
-        self.filename = filename
 
-    def get(self, obj):
-        """
-        Get the information about a UrlObject.  The UrlObject will have a url property
-        and a contenthash property.  These represent a hexdigest of a hash of the actual
-        url and the contents located at the url respectively.
-
-        @param obj: object to search for
-        @type obj: L{UrlObject}
-        """
-        found = False
-        try:
-            contenthash = obj.contenthash
-        except AttributeError:
-            pass
-        else:
-            if contenthash:
-                found = contenthash.decode("hex") in self.filterS
-        return found or obj.url.decode('hex') in self.filterS
-
-    def __len__(self):
-        """
-        Determine the length of the confidence filter
-        """
-        return self.urlcount
-
-    def _addkey(self, key):
-        # If the last one added filled this digest to capacity, don't add another.
-        if len(self) >= self.maxcapacity:
-            raise ContainerFullError
-        self.saved = False
-        return self.filterS.add(key)
-
-    def add(self, item, extra=None):
-        """
-        Param extra is deliberately unused; it exists for the interface.
-        """
-        # Refuse to add an empty url hash and empty contents hash.
-        added = False
-        if not item:
-            return added
-        try:
-            contenthash = item.contenthash
-        except AttributeError:
-            pass
-        else:
-            if contenthash:
-                added = not self._addkey(contenthash.decode('hex'))
-        if item.url:
-            added = not self._addkey(item.url.decode('hex')) or added
-        if added:
-            self.urlcount += 1
-        return added
-
-    def makedirs(self):
-        filedir = os.path.dirname(self.filename)
-        try:
-            if not os.path.isdir(filedir):
-                os.makedirs(filedir)
-        except:
-            return False
-        else:
-            return True
 
     # TODO: should we be saving self.hits as well?
     def save(self):
         """
         Write the filters for this digest to a seekable file-like object.
-        Based off of the equivalent method in ScalableBloomFilter.
+        Based off of the equivalent method in ScalableBloomFilter.  This
+        overrides the base class method so the packing can use the siginfo.
         """
         if not self.saved:
             now = time.time()
@@ -156,31 +88,12 @@ class ScanDigest(object):
             self.saved = True
             self.verify_save(now)
 
-    def verify_save(self, age=0):
-        """
-        If a scandigest is written with 0 bytes, there was a problem.  Stop the system so
-        it can be found.  Double-check the last modification time.
-        """
-        size = os.path.getsize(self.filename)
-        if not size > 0:
-            msg = 'file %s has size %s bytes' % (self.filename, size)
-            raise ZeroSizedDigestError(msg)
-        newer = os.path.getmtime(self.filename)
-        if not newer >= age:
-            msg = 'file %s age in seconds since the epoch is %s, but expected something >= %s'
-            raise DigestModifiedTimeError(msg % (self.filename, newer, age))
-
-    def close(self):
-        """
-        Make sure digest changes are written.
-        """
-        try:
-            self.save()
-        except IOError:
-            pass
 
     @classmethod
     def load(cls, filename):
+        """
+        This overrides the base class method to unpack using the siginfo.
+        """
         #import pdb; pdb.set_trace()
         t = cls.transformer
         size = t.size

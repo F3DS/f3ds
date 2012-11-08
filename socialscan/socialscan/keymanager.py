@@ -16,7 +16,8 @@ import sys
 import gnupg
 
 # Our modules
-from socialscan import util
+from f3ds.framework import util
+#from socialscan import util
 
 global gpg
 gpg = None

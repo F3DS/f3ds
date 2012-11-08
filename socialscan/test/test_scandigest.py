@@ -26,8 +26,8 @@ for d in [projectdir, path.join(projectdir, 'socialscan'), path.join(projectdir,
         sys.path.append(d)
 
 from f3ds.framework.exceptions import ContainerFullError, ZeroSizedDigestError, DigestModifiedTimeError
+from f3ds.framework.util import UrlObject
 from socialscan.model import scandigest
-from socialscan.searchutil import UrlObject
 from socialscan.util import SigInfo
 from unittestutils import trim_microseconds
 

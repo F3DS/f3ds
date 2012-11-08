@@ -42,13 +42,6 @@ class SigInfo(collections.namedtuple("SigInfo", ["scannervv", "sigversion", "sig
         return True
 
 
-def delta_seconds(td):
-    """
-    Determine the total seconds that have elapsed in a datetime.timedelta.
-    """
-    return float(td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / float(10**6)
-
-
 def update_counts(scanned_count, malicious_count, scan, days=10):
     """ Update counts for number of scans found and number of malicious scans found. """
     if (datetime.now() - scan.sigdate).days <= days:
@@ -77,27 +70,6 @@ def paranoid_update_counts(scans, days=2):
         if scan.safety == Safety.malicious:
             malicious += 1
     return scanned, malicious
-
-
-class TimeoutedTransport(xmlrpclib.Transport):
-    """
-    Timeouted xmlrpclib transport used in model.Peer.transport.
-    """
-    timeout = 10
-
-    def set_timeout(self, timeout):
-        self.timeout = timeout
-
-    def make_connection(self, host):
-        """
-        Slightly modified version of the same method from the original xmlrpclib.Transport
-        Added timeout to httpconnection.
-        """
-        if self._connection and host == self._connection[0]:
-            return self._connection[1]
-        chost, self._extra_headers, x509 = self.get_host_info(host)
-        self._connection = host, httplib.HTTPConnection(chost, timeout=self.timeout)
-        return self._connection[1]
 
 
 class Safety(collections.namedtuple("Safety", ["isconfident", "ismalicious"])):
@@ -131,133 +103,4 @@ Safety.benign = Safety(True, False)
 Safety.possibly_benign = Safety(False, False)
 Safety.possibly_malicious = Safety(False, True)
 Safety.malicious = Safety(True, True)
-
-
-class WeightedAverager(object):
-    """
-    Class used to average a series of values, with different weights on each value. The
-    influcene of each value on the average is determined by the weight, where the weight
-    is multiplied by the value to determine the influence.
-    """
-    def __init__(self):
-        self.elements = []
-        self.totalweight = 0.0
-        self.total = 0.0
-
-    @property
-    def average(self):
-        """
-        The current average.
-        """
-        if self.totalweight == 0.0:
-            return 0.0
-        return self.total / self.totalweight
-
-    def add(self, item, weight=1.0):
-        """
-        Add an item to the average.
-        @param item: value to be added to the average
-        @type item: C{float()}able
-
-        @param weight: influence of the value on the average
-        @type weight: C{float}
-        """
-        self.elements.append((item, weight))
-        self.total += weight * float(item)
-        self.totalweight += weight
-
-################## Decorators ##################
-
-def cached(method, cache_name="_{0}_cache"):
-    """
-    Decorator to cache the result of a method in the instance the method is called on,
-    and return the cached value for susequent calls of the method. Does not work on
-    non-method functions.
-
-    This is a very simple memoizing decorator - it completely ignores arguments to the
-    method to determine what cache to use.
-
-    @param method: function to decorate.
-    @type method: C{function}
-
-    @param cache_name: the name of the attribute to cache the method result on.
-    @type cache_name: C{str}
-    """
-    cache_name = cache_name.format(method.__name__)
-
-    @functools.wraps(method)
-    def cacher(self, *args, **kwargs):
-        try:
-            return getattr(self, cache_name)
-        except AttributeError:
-            result = method(self, *args, **kwargs)
-            setattr(self, cache_name, result)
-            return result
-
-    return cacher
-
-def cached_as(name):
-    """
-    Wraps @cached decorator to allow use of the cache_name argument. Returns the actual decorator.
-    @param name: name to pass to cached()
-    @type name: C{str}
-    """
-    def decorate(method):
-        return cached(method, name)
-    return decorate
-
-
-def class_name(class_instance):
-    """
-    'Decorator' to get the name of a class from an instance of the class.
-    """
-    rv = '%s' % class_instance.__class__
-    rv = rv.strip('<>')
-    rv = rv.split('.')[-1]
-    rv = rv.strip("'")
-    return rv
-
-################ End Decorators ################
-
-class TimeMeasurer(object):
-    """
-    Measure how long a piece of code takes to run.
-    usage:
-
-    with TimeMeasurer() as time_measurement:
-        #run your code
-    time_it_took = time_measurement.total
-    """
-    def __enter__(self):
-        self.start = time.time()
-        return self
-
-    def __exit__(self, type, value, traceback):
-        self.end = time.time()
-        self.total = self.end - self.start
-
-
-lin_addr_re=re.compile("inet addr: ?([0-9.]+) ")
-win_addr_re=re.compile("IPv4 Address[ .]*: ?([0-9.]+)[\n\r]*$")
-def getIP():
-    """
-    Determine the IP of a network interface on the local machine.
-    Returns None if no IP was found. Should work on both windows and linux.
-    """
-
-    if os.name == "posix":
-        args = ["ifconfig", interface]
-        child = subprocess.Popen(args, stdout=subprocess.PIPE)
-        output, error = child.communicate()
-
-        match = lin_addr_re.search(output)
-        if match:
-            return match.group(1)
-    elif os.name == "nt":
-        args = ["ipconfig"]
-        child = subprocess.Popen(args, stdout=subprocess.PIPE)
-        for line in child.stdout:
-            match = win_addr_re.search(line)
-            if match:
-                return match.group(1)
 

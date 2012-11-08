@@ -20,7 +20,8 @@ for d in [projectdir, path.join(projectdir, 'socialscan'), path.join(projectdir,
         sys.path.append(d)
 
 
-from socialscan import util
+from f3ds.framework import util
+from socialscan import util as scanutil
 
 
 class UtilTest(unittest.TestCase):
@@ -38,9 +39,9 @@ class UtilTest(unittest.TestCase):
         class Dummy: pass
         scan = Dummy()
         scan.sigdate = datetime.datetime.now()
-        scan.safety = util.Safety.malicious
+        scan.safety = scanutil.Safety.malicious
         found, malicious = (0, 0)
-        found, malicious = util.update_counts(found, malicious, scan)
+        found, malicious = scanutil.update_counts(found, malicious, scan)
         self.assertEqual(found, malicious)
         self.assertEqual(malicious, 1)
 
@@ -52,8 +53,8 @@ class UtilTest(unittest.TestCase):
         d1 = datetime.datetime(n1.year, n1.month, n1.day, n1.hour, n1.minute, 0, n1.microsecond)
         n2 = datetime.datetime.now()
         d2 = datetime.datetime(n2.year, n2.month, n2.day, n2.hour, n2.minute, 0, n2.microsecond)
-        s1 = util.SigInfo('Testing 1 2', 'Testing 1 2 v0.6', d1)
-        s2 = util.SigInfo('Testing 1 2', 'Testing 1 2 v0.6', d2)
+        s1 = scanutil.SigInfo('Testing 1 2', 'Testing 1 2 v0.6', d1)
+        s2 = scanutil.SigInfo('Testing 1 2', 'Testing 1 2 v0.6', d2)
         self.assertEqual(s1, s2)
 
     def testEqualSigInfoHalfWithMicroseconds(self):
@@ -64,8 +65,8 @@ class UtilTest(unittest.TestCase):
         d1 = datetime.datetime(n1.year, n1.month, n1.day, n1.hour, n1.minute, 0, n1.microsecond)
         n2 = datetime.datetime.now()
         d2 = datetime.datetime(n2.year, n2.month, n2.day, n2.hour, n2.minute, 0)
-        s1 = util.SigInfo('Testing 1 2', 'Testing 1 2 v0.6', d1)
-        s2 = util.SigInfo('Testing 1 2', 'Testing 1 2 v0.6', d2)
+        s1 = scanutil.SigInfo('Testing 1 2', 'Testing 1 2 v0.6', d1)
+        s2 = scanutil.SigInfo('Testing 1 2', 'Testing 1 2 v0.6', d2)
         self.assertEqual(s1, s2)
 
     def testEqualSigInfoWithoutMicroseconds(self):
@@ -76,13 +77,13 @@ class UtilTest(unittest.TestCase):
         now = datetime.datetime(n1.year, n1.month, n1.day, n1.hour, n1.minute, 0)
         d1 = now
         d2 = now
-        s1 = util.SigInfo('Testing 1 2', 'Testing 1 2 v0.6', d1)
-        s2 = util.SigInfo('Testing 1 2', 'Testing 1 2 v0.6', d2)
+        s1 = scanutil.SigInfo('Testing 1 2', 'Testing 1 2 v0.6', d1)
+        s2 = scanutil.SigInfo('Testing 1 2', 'Testing 1 2 v0.6', d2)
         self.assertEqual(s1, s2)
 
     def testComparingSigInfoToNoneShouldNotRaiseErrors(self):
         'SigInfo objects are not equal to None.'
-        s1 = util.SigInfo('Testing 1 2', 'Testing 1 2 v0.6', datetime.datetime.now())
+        s1 = scanutil.SigInfo('Testing 1 2', 'Testing 1 2 v0.6', datetime.datetime.now())
         s2 = None
         # There is no 'assertDoesNotRaise', so compare equal.
         if s1 == s2:

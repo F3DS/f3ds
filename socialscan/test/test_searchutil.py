@@ -21,9 +21,10 @@ for d in [projectdir, path.join(projectdir, 'socialscan'), path.join(projectdir,
         sys.path.append(d)
 
 
+from f3ds.framework import sethash
+from f3ds.framework import util
 from socialscan import searchutil
 from socialscan.model import Peer, ScanDigestFile
-from f3ds.framework import sethash
 from socialscan.util import Safety
 
 
@@ -34,7 +35,7 @@ class UrlObjectTest(unittest.TestCase):
         'Test that creating a new UrlObject results in a url hash and a content hash'
         plain_url = 'https://amason.com/buywarez'
         filesize = 5433
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name)
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name)
         self.assertNotEqual(uo.url, plain_url)
         self.assertEqual(uo.filesize, filesize)
         self.assertEqual(uo.nonce, self.name)
@@ -49,7 +50,7 @@ class UrlObjectTest(unittest.TestCase):
         'Test creating a new UrlObject with an already-hashed url'
         hashed_url = 'https://amason.com/buywarez'
         filesize = 6433
-        uo = searchutil.UrlObject(hashed_url, filesize, nonce=self.name, is_hashed=True)
+        uo = util.UrlObject(hashed_url, filesize, nonce=self.name, is_hashed=True)
         self.assertEqual(uo.url, hashed_url)
         self.assertEqual(uo.filesize, filesize)
         self.assertEqual(uo.nonce, self.name)
@@ -65,7 +66,7 @@ class UrlObjectTest(unittest.TestCase):
         plain_url = 'https://worstbuy.com/buyflops'
         filesize = 7431
         hash = 'a3e8cd964bafe231aebacef43fea7a98bfc1de64facebaceacebeefdeaddeaf'
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
         self.assertNotEqual(uo.url, plain_url)
         self.assertEqual(uo.filesize, filesize)
         self.assertEqual(uo.nonce, self.name)
@@ -83,7 +84,7 @@ class UrlObjectTest(unittest.TestCase):
         hashed_url = 'https://amason.com/buywarez'
         filesize = 27436
         hash = 'a3e8cd964bafe231aebacef43fea7a98bfc1de64facebaceacebeefdeaddeaf'
-        uo = searchutil.UrlObject(hashed_url, filesize, nonce=self.name, hash=hash, is_hashed=True)
+        uo = util.UrlObject(hashed_url, filesize, nonce=self.name, hash=hash, is_hashed=True)
         self.assertEqual(uo.url, hashed_url)
         self.assertEqual(uo.filesize, filesize)
         self.assertEqual(uo.nonce, self.name)
@@ -100,14 +101,14 @@ class UrlObjectTest(unittest.TestCase):
         plain_url = 'http://www.barnesandnible.com/u/Evil-Mook/374213414'
         filesize = 94382673
         hash = 'aceabeaaddbasebeefbeebecadecafecabcaddeafdeaddabfacefadefeedfae'
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
         self.assertEqual(uo.contenthash, uo._makehash(self.name, hash).hexdigest())
       
     def testUrlProperty(self):
         'Test that accessing url property does not change it'
         plain_url = 'https://amason.com/buywarez'
         filesize = 5433
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name)
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name)
         current = uo.url
         self.assertEqual(current, uo.url)
       
@@ -115,7 +116,7 @@ class UrlObjectTest(unittest.TestCase):
         'Test that accessing contenthash property does not change it'
         plain_url = 'https://amason.com/buywarez'
         filesize = 5433
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name)
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name)
         current = uo.contenthash
         self.assertEqual(current, uo.contenthash)
 
@@ -124,7 +125,7 @@ class UrlObjectTest(unittest.TestCase):
         'Test repr makes sense'
         plain_url = 'https://amason.com/buywarez'
         filesize = 5433
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name)
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name)
         actual = uo.__repr__()
         expected = """UrlObject('\
 cbf16c0096270ebc5de04a4a32f60694\
@@ -139,7 +140,7 @@ aa671bbf7cc781825435501ecafdb417\
         'Test str looks good'
         plain_url = 'https://amason.com/buywarez'
         filesize = 5433
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name)
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name)
         actual = uo.__str__()
         expected = """(\
 cbf16c0096270ebc5de04a4a32f60694\
@@ -155,7 +156,7 @@ aa671bbf7cc781825435501ecafdb417\
         plain_url = 'https://amason.com/buywarez'
         filesize = 5433
         hash = '9fa3ce1ba6ce2de7af3de8ad4be1e4f0'
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
         actual = uo.__str__()
         expected = """(\
 cbf16c0096270ebc5de04a4a32f60694\
@@ -174,21 +175,21 @@ aa671bbf7cc781825435501ecafdb417\
         'Test that an empty url will be False in a boolean context'
         plain_url = ''
         filesize = 4332
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name)
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name)
         self.assertFalse(uo.url)
 
     def testEmptyHash(self):
         'Test that an empty content hash will be False in a boolean context'
         plain_url = 'https://offacemix.com/stilurcc.jsp'
         filesize = 5433
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash='')
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name, hash='')
         self.assertFalse(uo.contenthash)
 
     def testEmptyUrlEmptyHash(self):
         'Test that an empty url and empty content hash will be False in a boolean context'
         plain_url = ''
         filesize = 4332
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash='')
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name, hash='')
         self.assertFalse(uo.url)
         self.assertFalse(uo.contenthash)
         self.assertFalse(uo)
@@ -198,8 +199,8 @@ aa671bbf7cc781825435501ecafdb417\
         plain_url = 'https://amason.com/buywarez'
         filesize = 5433
         hash = '9fa3ce1ba6ce2de7af3de8ad4be1e4f0'
-        uo1 = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
-        uo2 = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
+        uo1 = util.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
+        uo2 = util.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
         self.assertEqual(uo1, uo2)
 
     def testNotEqualUrl(self):
@@ -208,8 +209,8 @@ aa671bbf7cc781825435501ecafdb417\
         plain_url2 = 'http://amason.com/buywarez'
         filesize = 5433
         hash = '9fa3ce1ba6ce2de7af3de8ad4be1e4f0'
-        uo1 = searchutil.UrlObject(plain_url1, filesize, nonce=self.name, hash=hash)
-        uo2 = searchutil.UrlObject(plain_url2, filesize, nonce=self.name, hash=hash)
+        uo1 = util.UrlObject(plain_url1, filesize, nonce=self.name, hash=hash)
+        uo2 = util.UrlObject(plain_url2, filesize, nonce=self.name, hash=hash)
         self.assertNotEqual(uo1, uo2)
 
     def testNotEqualContenthash(self):
@@ -218,8 +219,8 @@ aa671bbf7cc781825435501ecafdb417\
         filesize = 5433
         hash1 = '9fa3ce1ba6ce2de7af3de8ad4be1e4f0'
         hash2 = 'afa3ce1ba6ce2de7af3de8ad4be1e4f0'
-        uo1 = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash=hash1)
-        uo2 = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash=hash2)
+        uo1 = util.UrlObject(plain_url, filesize, nonce=self.name, hash=hash1)
+        uo2 = util.UrlObject(plain_url, filesize, nonce=self.name, hash=hash2)
         self.assertNotEqual(uo1, uo2)
 
     def testNotEqualNonce(self):
@@ -229,8 +230,8 @@ aa671bbf7cc781825435501ecafdb417\
         hash = '9fa3ce1ba6ce2de7af3de8ad4be1e4f0'
         nonce1 = self.name
         nonce2 = self.name + 'ed'
-        uo1 = searchutil.UrlObject(plain_url, filesize, nonce=nonce1, hash=hash)
-        uo2 = searchutil.UrlObject(plain_url, filesize, nonce=nonce2, hash=hash)
+        uo1 = util.UrlObject(plain_url, filesize, nonce=nonce1, hash=hash)
+        uo2 = util.UrlObject(plain_url, filesize, nonce=nonce2, hash=hash)
         self.assertNotEqual(uo1, uo2)
 
     def testNoErrorOnHashNone(self):
@@ -238,14 +239,14 @@ aa671bbf7cc781825435501ecafdb417\
         plain_url = 'https://amason.com/buywarez'
         filesize = 5433
         hash = None
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
 
     def testNoErrorOnUrlNone(self):
         'Test that giving a url of None will not result in an error.'
         plain_url = None
         filesize = 5433
         hash = '9fa3ce1ba6ce2de7af3de8ad4be1e4f0'
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
 
     def testNoErrorOnHashNonString(self):
         'Test that giving a non-string for the hash will not result in an error.'
@@ -253,7 +254,7 @@ aa671bbf7cc781825435501ecafdb417\
         filesize = 5433
         hash = list(set('supercalifragilisticexpialadocious?'))
         hash.sort()
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
 
     def testNoErrorOnUrlNonString(self):
         'Test that giving a non-string for the url will not result in an error.'
@@ -261,14 +262,14 @@ aa671bbf7cc781825435501ecafdb417\
         plain_url.sort()
         filesize = 5433
         hash = '9fa3ce1ba6ce2de7af3de8ad4be1e4f0'
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
 
     def testNotEmptyIfUrlIsUnicode(self):
         'Test that if the url is unicode it will still work.'
         plain_url = u'https://amason.com/buywarez'
         filesize = 5433
         hash = '9fa3ce1ba6ce2de7af3de8ad4be1e4f0'
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
         self.assertTrue(uo.url)
         self.assertTrue(uo.contenthash)
         self.assertTrue(uo)
@@ -278,7 +279,7 @@ aa671bbf7cc781825435501ecafdb417\
         plain_url = 'https://amason.com/buywarez'
         filesize = 5433
         hash = u'9fa3ce1ba6ce2de7af3de8ad4be1e4f0'
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
         self.assertTrue(uo.url)
         self.assertTrue(uo.contenthash)
         self.assertTrue(uo)
@@ -288,7 +289,7 @@ aa671bbf7cc781825435501ecafdb417\
         plain_url = u'https://amason.com/buywarez'
         filesize = 5433
         hash = u'9fa3ce1ba6ce2de7af3de8ad4be1e4f0'
-        uo = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
+        uo = util.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
         self.assertTrue(uo.url)
         self.assertTrue(uo.contenthash)
         self.assertTrue(uo)
@@ -298,7 +299,7 @@ aa671bbf7cc781825435501ecafdb417\
         plain_url = u'https://seasemestret.com/piedpiper'
         filesize = 5433
         hash = u'9fa3ce1ba6ce2de7af3de8ad4be1e4f0'
-        uo1 = searchutil.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
+        uo1 = util.UrlObject(plain_url, filesize, nonce=self.name, hash=hash)
         uo2 = None
         if uo1 == uo2:
             msg = 'UrlObject %s and %s are not equal, but yet they are?'
@@ -320,7 +321,7 @@ class SearchResultTest(unittest.TestCase):
     def testInit(self):
         'Testing SearchResult initialization.'
         plain_url = 'http://facebool.com/pownership.aspx'
-        uo = searchutil.UrlObject(plain_url, 2343, nonce=self.name)
+        uo = util.UrlObject(plain_url, 2343, nonce=self.name)
         expected_safety = Safety(True, True)
         sr = searchutil.SearchResult(uo, self.sdfile, expected_safety)
         self.assertEqual(sr.filesize, uo.filesize)
@@ -339,7 +340,7 @@ class SearchResultTest(unittest.TestCase):
     def testMarkTaintedNoPeer(self):
         'Testing markTainted with no peer defined.'
         plain_url = 'http://googke.com/pownership.aspx'
-        uo = searchutil.UrlObject(plain_url, 2343, nonce=self.name)
+        uo = util.UrlObject(plain_url, 2343, nonce=self.name)
         expected_safety = Safety(True, True)
         sr = searchutil.SearchResult(uo, self.sdfile, expected_safety)
         self.assertRaises(NotImplementedError, sr.markTainted, (None,)) 

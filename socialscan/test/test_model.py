@@ -28,7 +28,7 @@ for d in [projectdir, path.join(projectdir, 'socialscan'), path.join(projectdir,
 
 from socialscan.model import (Base, Peer, Scan, ScanDigestFile, ScanLogFile,
                               ScanDigest, ScanLog)
-from socialscan.searchutil import UrlObject
+from f3ds.framework.util import UrlObject
 from socialscan.util import SigInfo, Safety
 from unittestutils import trim_microseconds
 

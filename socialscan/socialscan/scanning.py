@@ -29,10 +29,11 @@ from twisted.internet import defer, reactor
 
 # Our modules
 from f3ds.framework.log import Logger
+from f3ds.framework.util import cached, TimeMeasurer
 from socialscan import scanhandlers
 from socialscan.exceptions import IncompleteScanError
 from socialscan.model import Peer, Scan, SentScanRequest, ScanDigestFile, SocialRelationship
-from socialscan.util import Safety, cached, TimeMeasurer
+from socialscan.util import Safety
 
 # __file__ is <source dir>/socialscan/socialscan/scanning.py
 # F3DS dir is <source dir>/f3ds/framework/

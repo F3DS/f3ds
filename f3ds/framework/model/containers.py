@@ -7,8 +7,9 @@ import os
 
 # Our modules
 from f3ds.framework.log import Logger
+from f3ds.framework.util import UrlObject
 from socialscan.model import relationshipsQuery
-from socialscan.searchutil import SearchResult, UrlObject
+from socialscan.searchutil import SearchResult
 
 
 class ContainerManager(object):

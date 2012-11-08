@@ -15,11 +15,12 @@ from os import path
 # Our modules
 from f3ds.framework.log import Logger
 from f3ds.framework.exceptions import ContainerFullError
+from f3ds.framework.model.log import Log
 from socialscan.config import loadDefaultConfig
 from socialscan.util import Safety, SigInfo
 
 
-class ScanLog(object):
+class ScanLog(Log):
     """
     IMPORTANT:
     this class should be considered an implementation detail of the higher level
@@ -56,24 +57,16 @@ class ScanLog(object):
         @param db: database containing url/content hash keys and maliciousness values
         @type db: L{anydbm} database
         """
-        self.maxcapacity = maxcapacity
+        super(ScanLog, self).__init__(maxcapacity, siginfo, dbpath)
         self.siginfo = siginfo
-        self.dbpath = dbpath
-        dbdir = path.dirname(self.dbpath)
         self.metadata_keys = ['maxcapacity', 'scannervv', 'sigversion', 'sigtimestamp', 'urlcount']
-        if not path.isdir(dbdir):
-            os.makedirs(dbdir)
-        self.db = anydbm.open(self.dbpath, 'c')
-        if 'hits' in self.db:
-            self.hits = self.db['hits']
-        self.urlcount = 0
         # Save metadata after setting it.
         self.saved = False
         self.save()
 
     def get(self, urlobject):
         """
-        Get the information about an object. 
+        Get the information about an attribute of interest for an object. 
         @param urlobject: object with url hash and/or content hash to search for
         """
         confident = False
@@ -87,9 +80,6 @@ class ScanLog(object):
                 break
         return Safety(confident, malicious) if confident else None
 
-    def __len__(self):
-        """ Get the number of urls in this scanlog. """
-        return self.urlcount
 
     def add(self, urlobject, safety):
         # UrlObject is False if url hash and content hash are both empty.
@@ -109,38 +99,23 @@ class ScanLog(object):
             self.urlcount += 1
         return added
 
-    def save(self):
-        """
-        Make sure db changes are written.
-        """
-        if not self.saved:
-            self._set_metadata()
-            self.db.sync()
-            self.saved = True
-
-    def close(self):
-        try:
-            if self.db:
-                self.db.close()
-        except anydbm.error:
-            pass
-
-    @classmethod
-    def _ignore_microseconds(cls, dtstring):
-        decimal = dtstring.find('.')
-        if decimal > 0:
-            dtstring = dtstring[:decimal]
-        return dtstring
-
     def _set_metadata(self):
         self.db['maxcapacity'] = '%s' % self.maxcapacity
-        self.db['scannervv'] = '%s' % self.siginfo.scannervv
-        self.db['sigversion'] = '%s' % self.siginfo.sigversion
-        if not self.siginfo.sigdate:
+        try:
+            self.db['scannervv'] = '%s' % self.siginfo.scannervv
+            self.db['sigversion'] = '%s' % self.siginfo.sigversion
+            if not self.siginfo.sigdate:
+                # self.siginfo is a property; assign to self.sigdate instead.
+                self.sigdate = datetime.utcnow()
+                self.db['utc'] = 'True'
+            self.db['sigtimestamp'] = self._ignore_microseconds('%s' % self.siginfo.sigdate)
+        except:
+            self.db['scannervv'] = ''
+            self.db['sigversion'] = ''
             # self.siginfo is a property; assign to self.sigdate instead.
             self.sigdate = datetime.utcnow()
             self.db['utc'] = 'True'
-        self.db['sigtimestamp'] = self._ignore_microseconds('%s' % self.siginfo.sigdate)
+            self.db['sigtimestamp'] = self._ignore_microseconds('%s' % self.sigdate)
         self.db['urlcount'] = '%s' % self.urlcount
         if hasattr(self, 'hits'):
             self.db['hits'] = '%s' % self.hits
