@@ -19,12 +19,13 @@ from sqlalchemy import and_, or_
 # Our modules
 from f3ds.framework.log import Logger
 from f3ds.framework.exceptions import ContainerFullError
+from f3ds.framework.util import UrlObject
 from socialscan import scanhandlers, scanning
 from socialscan.config import loadDefaultConfig
 from socialscan.db import setupDB
 from socialscan.model import Peer, QueuedRequest, Scan, ScanLogFile, SocialRelationship
 from socialscan.scanlog import ScanLog
-from socialscan.searchutil import SearchResult, UrlObject
+from socialscan.searchutil import SearchResult
 
 
 class ScanLogManager(object):
